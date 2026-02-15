@@ -1,0 +1,419 @@
+import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
+import axios from "axios";
+import api from "../util/axios";
+
+// createAsyncThunk automatically generates pending/fulfilled/rejected action types
+// and dispatches them based on the promise lifecycle
+export const getAuth = createAsyncThunk(
+  "auth/getAuth", // action type prefix
+  async ({ formData, url }, { rejectWithValue }) => {
+    try {
+      const config = {
+        headers: {
+          "Content-Type": "application/json",
+        },
+      };
+      const { data } = await api.post(`/${url}/login`, formData, config);
+      console.log("API Response:", data);
+      return data.user;
+    } catch (error) {
+      return rejectWithValue(error);
+    }
+  },
+);
+
+export const createAdmin = createAsyncThunk(
+  "user/createAdmin", // action type prefix
+  async ({ formData, url }, { rejectWithValue }) => {
+    try {
+      const config = {
+        headers: {
+          "Content-Type": "application/json",
+        },
+      };
+      const { data } = await axios.post(
+        `/api/v1/${url}/register`,
+        formData,
+        config,
+      );
+      console.log("API Response:", data);
+      return data.success; // This becomes action.payload on success
+    } catch (error) {
+      console.error("API Error:", error);
+      return rejectWithValue(
+        error.response?.data?.message || "Failed to Create admin account",
+      );
+    }
+  },
+);
+
+export const loadUser = createAsyncThunk(
+  "user/loadUser", // action type prefix
+  async (_, { rejectWithValue }) => {
+    try {
+      // Make API call to fetch products
+      const { data } = await axios.get(`/api/v1/admins/me`);
+      console.log("API Response:", data);
+      return data.user; // This becomes action.payload on success
+    } catch (error) {
+      console.error("API Error:", error);
+      return rejectWithValue(error.response?.data?.message);
+    }
+  },
+);
+
+export const updatePassword = createAsyncThunk(
+  "user/updatePassword", // action type prefix
+  async ({ formData, userType }, { rejectWithValue }) => {
+    try {
+      const config = {
+        headers: {
+          "Content-Type": "application/json",
+        },
+      };
+      const { data } = await axios.put(
+        `/api/v1/${userType}s/update/password`,
+        formData,
+        config,
+      );
+      console.log("API Response:", data);
+      return data; // This becomes action.payload on success
+    } catch (error) {
+      console.error("API Error:", error);
+      return rejectWithValue(
+        error.response?.data?.message || "Failed to update password",
+      );
+    }
+  },
+);
+
+export const allUsers = createAsyncThunk(
+  "user/allUsers", // action type prefix
+  async ({ resPerPage = 5, currentPage = 1 } = {}, { rejectWithValue }) => {
+    try {
+      // Make API call to fetch products
+      const { data } = await axios.get(
+        `/api/v1/admin/users?resperpage=${resPerPage}&page=${currentPage}`,
+      );
+
+      // Log the response to debug
+      console.log("API Response:", data);
+
+      return data; // This becomes action.payload on success
+    } catch (error) {
+      // Log error for debugging
+      console.error("API Error:", error);
+
+      // ✅ Don't treat "not logged in" as an error
+      if (error.response?.status === 401) {
+        return rejectWithValue(null); // Silent fail for unauthorized
+      }
+      return rejectWithValue(
+        error.response?.data?.message || "Failed to load user",
+      );
+    }
+  },
+);
+
+export const logoutUser = createAsyncThunk(
+  "user/logoutUser", // action type prefix
+  async (_, { rejectWithValue }) => {
+    try {
+      // Make API call to fetch products
+      const { data } = await axios.get("/api/v1/admins/logout");
+      console.log("API Response:", data);
+      return data.user; // This becomes action.payload on success
+    } catch (error) {
+      console.error("API Error:", error);
+      return rejectWithValue(error.message || "Something went wrong");
+    }
+  },
+);
+
+export const updateProfile = createAsyncThunk(
+  "user/updateProfile", // action type prefix
+  async ({ formData, userType }, { rejectWithValue }) => {
+    try {
+      const config = {
+        headers: {
+          "Content-Type": "application/json",
+        },
+      };
+      // Make API call to fetch products
+      const { data } = await axios.put(
+        `/api/v1/${userType}s/profile/update`,
+        formData,
+        config,
+      );
+      console.log("API Response:", data);
+      return data; // This becomes action.payload on success
+    } catch (error) {
+      console.error("API Error:", error);
+      return rejectWithValue(error.message || "Something went wrong");
+    }
+  },
+);
+
+export const getUser = createAsyncThunk(
+  "user/getUser", // action type prefix
+  async (id, { rejectWithValue }) => {
+    try {
+      // Make API call to fetch products
+      const { data } = await axios.get(`/api/v1/admin/user/${id}`);
+
+      // Log the response to debug
+      console.log("API Response:", data);
+
+      return data.user; // This becomes action.payload on success
+    } catch (error) {
+      // Log error for debugging
+      console.error("API Error:", error);
+
+      // rejectWithValue allows us to return a custom error payload
+      const errorMessage =
+        error.response?.data?.message ||
+        error.message ||
+        "Something went wrong";
+      return rejectWithValue(errorMessage);
+    }
+  },
+);
+
+export const deleteUser = createAsyncThunk(
+  "user/deleteUser", // action type prefix
+  async (id, { rejectWithValue }) => {
+    try {
+      // Make API call to fetch products
+      const { data } = await axios.delete(`/api/v1/admin/user/${id}`);
+
+      // Log the response to debug
+      console.log("API Response:", data);
+
+      return data.success; // This becomes action.payload on success
+    } catch (error) {
+      // Log error for debugging
+      console.error("API Error:", error);
+
+      // rejectWithValue allows us to return a custom error payload
+      const errorMessage =
+        error.response?.data?.message ||
+        error.message ||
+        "Something went wrong";
+      return rejectWithValue(errorMessage);
+    }
+  },
+);
+
+const authSlice = createSlice({
+  name: "auth",
+  initialState: {
+    isAuthenticated: false,
+    loading: false,
+    error: null,
+    user: null,
+    allUser: [],
+    totalUsers: [],
+    userLoaded: false,
+    usersLoading: false,
+    isCreated: false,
+    isUpdated: false,
+    isDeleted: false,
+    fetchedUser: null,
+  },
+  reducers: {
+    clearError: (state) => {
+      state.error = null;
+    },
+    createUserReset: (state) => {
+      state.isCreated = false;
+    },
+    updateUserReset: (state) => {
+      state.isUpdated = false;
+    },
+    deleteUserReset: (state) => {
+      state.isDeleted = false;
+    },
+    setLoading: (state, action) => {
+      state.loading = action.payload;
+    },
+  },
+  extraReducers: (builder) => {
+    builder
+      // ========== Admin LOGIN ==========
+      .addCase(getAuth.pending, (state) => {
+        state.loading = true;
+        // state.isAuthenticated = false;
+        state.error = null;
+      })
+      .addCase(getAuth.fulfilled, (state, action) => {
+        state.loading = false;
+        state.isAuthenticated = true;
+        state.user = action.payload;
+        state.error = null;
+        state.userLoaded = true;
+      })
+      .addCase(getAuth.rejected, (state, action) => {
+        state.loading = false;
+        state.isAuthenticated = false;
+        state.user = null;
+        state.error = action.payload;
+        state.userLoaded = true;
+      })
+
+      // ========== Admin REGISTER ==========
+      .addCase(createAdmin.pending, (state) => {
+        state.loading = true;
+        state.isCreated = false;
+        // state.isAuthenticated = false;
+        state.error = null;
+      })
+      .addCase(createAdmin.fulfilled, (state, action) => {
+        state.loading = false;
+        state.isCreated = action.payload;
+        // state.isAuthenticated = true; // ✅ User is authenticated after signup
+        // state.user = action.payload;
+        state.error = null;
+        // state.userLoaded = true;
+      })
+      .addCase(createAdmin.rejected, (state, action) => {
+        state.loading = false;
+        state.isCreated = false;
+        // state.isAuthenticated = false;
+        // state.user = null;
+        state.error = action.payload;
+        // state.userLoaded = true;
+      })
+      // ========== LOAD USER ==========
+      .addCase(loadUser.pending, (state) => {
+        state.loading = true;
+        // state.isAuthenticated = false;
+        state.error = null;
+        state.userLoaded = false;
+      })
+      .addCase(loadUser.fulfilled, (state, action) => {
+        state.loading = false;
+        state.isAuthenticated = true;
+        state.user = action.payload;
+        state.error = null;
+        state.userLoaded = true;
+      })
+      .addCase(loadUser.rejected, (state, action) => {
+        state.loading = false;
+        state.isAuthenticated = false;
+        state.user = null;
+        state.error = action.payload;
+        state.userLoaded = true;
+      })
+
+      // ========== Update Password ==========
+      .addCase(updatePassword.pending, (state) => {
+        state.loading = true;
+        state.isUpdated = false;
+        // state.isAuthenticated = false;
+        state.error = null;
+        state.userLoaded = false;
+      })
+      .addCase(updatePassword.fulfilled, (state, action) => {
+        state.loading = false;
+        state.isAuthenticated = true;
+        state.user = action.payload.user;
+        state.isUpdated = action.payload.success;
+        state.error = null;
+        state.userLoaded = true;
+      })
+      .addCase(updatePassword.rejected, (state, action) => {
+        state.loading = false;
+        state.isUpdated = false;
+        // state.isAuthenticated = false;
+        // state.user = null;
+        state.error = action.payload;
+        state.userLoaded = true;
+      })
+
+      // ========== LOGOUT ==========
+      .addCase(logoutUser.fulfilled, (state) => {
+        state.loading = false;
+        state.isAuthenticated = false;
+        state.user = null;
+        state.error = null;
+        state.userLoaded = true;
+      })
+      .addCase(logoutUser.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+        state.userLoaded = true;
+      })
+      // ========== All User - Admin Only ==========
+      .addCase(allUsers.pending, (state) => {
+        state.usersLoading = true;
+        state.error = null;
+      })
+      .addCase(allUsers.fulfilled, (state, action) => {
+        state.usersLoading = false;
+        state.error = null;
+        state.allUser = action.payload.users;
+        state.totalUsers = action.payload.totalUsers;
+      })
+      .addCase(allUsers.rejected, (state, action) => {
+        state.usersLoading = false;
+        state.error = action.payload;
+      })
+      // ========== Update User - Admin Only ==========
+      .addCase(updateProfile.pending, (state) => {
+        state.loading = true;
+        state.isUpdated = false;
+        state.error = null;
+      })
+      .addCase(updateProfile.fulfilled, (state, action) => {
+        state.loading = false;
+        state.error = null;
+        state.isUpdated = action.payload.success;
+        state.user = action.payload.data;
+      })
+      .addCase(updateProfile.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+        state.isUpdated = false;
+      })
+      // ========== Get USER - Admin ==========
+      .addCase(getUser.pending, (state) => {
+        state.usersLoading = true;
+        state.error = null;
+      })
+      .addCase(getUser.fulfilled, (state, action) => {
+        state.usersLoading = false;
+        state.fetchedUser = action.payload;
+        state.error = null;
+      })
+      .addCase(getUser.rejected, (state, action) => {
+        state.usersLoading = false;
+        state.fetchedUser = null;
+        state.error = action.payload;
+      })
+      // ========== Delete User - Admin Only ==========
+      .addCase(deleteUser.pending, (state) => {
+        state.usersLoading = true;
+        state.error = null;
+        state.isDeleted = false;
+      })
+      .addCase(deleteUser.fulfilled, (state, action) => {
+        state.usersLoading = false;
+        state.error = null;
+        state.isDeleted = action.payload;
+      })
+      .addCase(deleteUser.rejected, (state, action) => {
+        state.usersLoading = false;
+        state.error = action.payload;
+        state.isDeleted = false;
+      });
+  },
+});
+
+export const {
+  setLoading,
+  createUserReset,
+  deleteUserReset,
+  updateUserReset,
+  clearError,
+} = authSlice.actions;
+export const authReducer = authSlice.reducer;
