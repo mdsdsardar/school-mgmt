@@ -1,4 +1,4 @@
-**************************** Postman ****************************
+**************************** Postman **************************** 
 1st create a folder in postman, with your project name, then create sub folder for each mongodb model for consistancy.
 Create new environment for your project and then create all the important env vars like baseURL or other users token.
 
